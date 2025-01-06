@@ -12,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.LocationServices
+import com.masonk.weather.databinding.ActivityMainBinding
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -19,6 +20,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityMainBinding
 
     // 위치 권한을 요청하고 결과를 처리하는 콜백 등록
     val locationPermissionRequest = registerForActivityResult( // 결과를 처리할 콜백을 등록하는 메서드
@@ -49,7 +51,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         // 위치 권한 요청
         locationPermissionRequest.launch(
@@ -57,7 +60,6 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             )
         )
-
 
     }
 
@@ -143,9 +145,27 @@ class MainActivity : AppCompatActivity() {
                             else -> {}
                         }
                     }
-
-
                 }
+                
+                // 맵의 값 리스트
+                val list = forecastDateTimeMap.values.toMutableList()
+                
+                // 예보 날짜 및 시간을 기준으로 정렬
+                list.sortWith { f1, f2 ->
+                    val f1DateTime = "${f1.forecastDate}${f1.forecastTime}"
+                    val f2DateTime = "${f2.forecastDate}${f2.forecastTime}"
+
+                    return@sortWith f1DateTime.compareTo(f2DateTime)
+                }
+
+                // 리스트의 첫 번째 값은 현재 날씨
+                val currentForecast = list.first()
+
+                // UI
+                binding.temperatureTextView.text = getString(R.string.temperature_text, currentForecast.temperature)
+                binding.skyTextView.text = currentForecast.weather // 하늘상태 & 강수형태
+                binding.precipitationPercentageTextView.text = getString(R.string.precipitation_text, currentForecast.precipitationPercentage)
+
             }
 
             override fun onFailure(p0: Call<Weather>, p1: Throwable) {

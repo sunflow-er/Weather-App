@@ -3,6 +3,7 @@ package com.masonk.weather
 import gen._base._base_java__assetres.srcjar.R.id.time
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 data class BaseDateTime (
     val baseDate: String,
@@ -58,7 +59,7 @@ data class BaseDateTime (
             }
 
             // baseDate 보정
-            val baseDate = String.format("%04d%02d%02d", dateTime.year, dateTime.month, dateTime.dayOfMonth)
+            val baseDate = dateTime.format(DateTimeFormatter.ofPattern("yyyyMMdd"))
 
             // baseDateTime 반환
             return BaseDateTime(baseDate, baseTime)
