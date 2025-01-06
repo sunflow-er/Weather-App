@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.location.Location
 import android.net.Uri
 import android.provider.Settings
@@ -13,11 +14,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.LocationServices
 import com.masonk.weather.databinding.ActivityMainBinding
+import com.masonk.weather.databinding.ItemChildForecastBinding
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -28,7 +31,10 @@ class MainActivity : AppCompatActivity() {
     ) { permissions -> // 사용자가 권한 요청에 응답한 결과를 포함하는 맵
         // 권한이 허용되었는지 확인하고 그에 따른 동작 수행
         when {
-            permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false) -> { // 대략적인 위치 권한만 허용
+            permissions.getOrDefault(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                false
+            ) -> { // 대략적인 위치 권한만 허용
                 // 마지막 위치 정보 업데이트
                 updateLocation()
             }
@@ -83,6 +89,22 @@ class MainActivity : AppCompatActivity() {
 
         // 마지막으로 알려진 위치 정보 가져오기
         fusedLocationClient.lastLocation.addOnSuccessListener { // 성공하면
+            Thread {
+                try {
+                    val addressList =
+                        Geocoder(this, Locale.KOREA).getFromLocation(it.latitude, it.longitude, 1)
+
+                    runOnUiThread {
+                        binding.locationTextView.text = addressList
+                            ?.get(0)
+                            ?.thoroughfare // 최소 단위 (도로명, 거리명)
+                            .orEmpty()
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }.start()
+
             // 위치 정보를 바탕으로 날씨 예보 정보 가져오기
             fetchForecast(it)
         }
@@ -146,10 +168,10 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 }
-                
+
                 // 맵의 값 리스트
                 val list = forecastDateTimeMap.values.toMutableList()
-                
+
                 // 예보 날짜 및 시간을 기준으로 정렬
                 list.sortWith { f1, f2 ->
                     val f1DateTime = "${f1.forecastDate}${f1.forecastTime}"
@@ -162,9 +184,32 @@ class MainActivity : AppCompatActivity() {
                 val currentForecast = list.first()
 
                 // UI
-                binding.temperatureTextView.text = getString(R.string.temperature_text, currentForecast.temperature)
-                binding.skyTextView.text = currentForecast.weather // 하늘상태 & 강수형태
-                binding.precipitationPercentageTextView.text = getString(R.string.precipitation_text, currentForecast.precipitationPercentage)
+                binding.temperatureTextView.text =
+                    getString(R.string.temperature_text, currentForecast.temperature)
+                binding.weatherTextView.text = currentForecast.weather // 하늘상태 & 강수형태
+                binding.precipitationPercentageTextView.text =
+                    getString(R.string.precipitation_text, currentForecast.precipitationPercentage)
+                binding.childForecastLayout.apply {
+                    // 레이아웃에 뷰를 추가하는 방식
+                    list.forEachIndexed { index, forecast ->
+                        // 현재 날씨의 경우 무시
+                        if (index == 0) {
+                            return@forEachIndexed
+                        }
+
+                        // 그 외 다른 날씨 정보, 뷰 생성 및 데이터 할당
+                        val childForecastItemView = ItemChildForecastBinding.inflate(layoutInflater)
+                        childForecastItemView.apply {
+                            timeTextView.text = forecast.forecastTime
+                            weatherTextView.text = forecast.weather
+                            temperatureTextView.text =
+                                getString(R.string.temperature_text, forecast.temperature)
+                        }
+
+                        // 레이아웃에 뷰 추가
+                        addView(childForecastItemView.root)
+                    }
+                }
 
             }
 
