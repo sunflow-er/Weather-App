@@ -35,7 +35,7 @@ object WeatherRepository {
 
         // 현재 위치의 현재 시간을 기준으로 날씨 예보 정보 가져오기
         weatherService.getVillageForecast(
-            serviceKey = "KKL5lWfpwwpCEOTbj8WP303rixDkhtDFIO0IX1WPH8bPTofZ9spW795/KdJIiSOlkkkFIargPbqV5CQngoEZFg==",
+            serviceKey = "-",
             baseDate = baseDateTime.baseDate,
             baseTime = baseDateTime.baseTime,
             nx = point.x,
